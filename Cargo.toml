@@ -1,0 +1,8 @@
+[package]
+name = "dustboy"
+version = "0.1.0"
+authors = ["Darren <darren.daley@hotmail.co.uk>"]
+edition = "2018"
+
+[dependencies]
+sdl2 = "0.32"
