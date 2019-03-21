@@ -5,6 +5,6 @@ mod memory;
 
 fn main() {
 
-    let memory = memory::RAM::new();
+    let memory = memory::Memory::new();
     let cpu = cpu::CPU::new();
 } 
