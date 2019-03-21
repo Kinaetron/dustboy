@@ -5,14 +5,14 @@ use std::io::prelude::*;
 
 pub struct Memory {
     ram: [u16; 4096],
-    cartridge: [u16; 1048576]
+    cartridge: Vec<u8>
 }
 
 impl Memory {
     pub fn new()-> Memory {
         Memory {
             ram: [0; 4096],
-            cartridge: [0; 1048576]
+            cartridge: Vec::new()
         }
     }
 
@@ -25,7 +25,11 @@ impl Memory {
         }
 
         let rom_path = &args[1];
-        
+
+        let mut rom = File::open(rom_path).map_err(|e| e.description().to_string())?;
+        rom.read_to_end(&mut self.cartridge).map_err(|e| e.description().to_string())?;
+        self.cartridge.shrink_to_fit();
+
         Ok(())
     }
 }
