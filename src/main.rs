@@ -14,5 +14,5 @@ fn main() {
         process::exit(1);
     });
 
-    let cpu = cpu::CPU::new();
+    let mut cpu = cpu::CPU::new(memory.ram);
 } 
