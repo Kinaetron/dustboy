@@ -1,5 +1,4 @@
 use std::process;
-
 extern crate sdl2;
 
 mod cpu;
@@ -14,5 +13,5 @@ fn main() {
         process::exit(1);
     });
 
-    let mut cpu = cpu::CPU::new(memory.ram);
+    let mut cpu = cpu::CPU::new(memory);
 } 

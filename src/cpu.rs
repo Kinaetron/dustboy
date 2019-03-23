@@ -1,3 +1,5 @@
+use crate::memory::*;
+
 pub struct Register {
     value: u16
 }
@@ -36,7 +38,7 @@ impl Register {
 
 pub struct CPU {
     pub ticks: u32,
-    pub memory: [u8; 0x10000],
+    memory_bus: Memory,
     register_AF: Register,
     register_BC: Register,
     register_DE: Register,
@@ -46,9 +48,9 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub fn new(memory: [u8; 0x10000]) -> CPU {
+    pub fn new(memory_bus: Memory) -> CPU {
         let mut cpu = CPU {
-            memory,
+            memory_bus,
             ticks: 0,
             register_AF: Register::new(),
             register_BC: Register::new(),
@@ -142,7 +144,7 @@ impl CPU {
     }
 
     fn opcode_fetch(&mut self) -> u8 {
-        self.memory[self.program_counter as usize]
+        self.memory_bus.ram[self.program_counter as usize]
     }
 
     fn opcode_load_BB(&mut self) {
@@ -176,7 +178,7 @@ impl CPU {
     }
 
     fn opcode_load_BHL(&mut self) {
-        self.register_BC.set_left(self.memory[self.register_HL.get() as usize]);
+        self.register_BC.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
         self.ticks += 8;
     }
 
@@ -218,7 +220,7 @@ impl CPU {
     }
 
     fn opcode_load_CHL(&mut self) {
-        self.register_BC.set_right(self.memory[self.register_HL.get() as usize]);
+        self.register_BC.set_right(self.memory_bus.ram[self.register_HL.get() as usize]);
         self.ticks += 8;
     }
 
@@ -260,7 +262,7 @@ impl CPU {
     }
 
     fn opcode_load_DHL(&mut self) {
-        self.register_DE.set_left(self.memory[self.register_HL.get() as usize]);
+        self.register_DE.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
         self.ticks += 8;
     }
 
@@ -302,7 +304,7 @@ impl CPU {
     }
 
     fn opcode_load_EHL(&mut self) {
-        self.register_DE.set_right(self.memory[self.register_HL.get() as usize]);
+        self.register_DE.set_right(self.memory_bus.ram[self.register_HL.get() as usize]);
         self.ticks += 8;
     }
 
@@ -344,7 +346,7 @@ impl CPU {
     }
 
     fn opcode_load_HHL(&mut self) {
-        self.register_HL.set_left(self.memory[self.register_HL.get() as usize]);
+        self.register_HL.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
         self.ticks += 8;
     }
 
@@ -386,7 +388,7 @@ impl CPU {
     }
 
     fn opcode_load_LHL(&mut self) {
-        self.register_HL.set_right(self.memory[self.register_HL.get() as usize]);
+        self.register_HL.set_right(self.memory_bus.ram[self.register_HL.get() as usize]);
         self.ticks += 8;
     }
 
@@ -398,37 +400,37 @@ impl CPU {
 
 
     fn opcode_load_HLB(&mut self) {
-        self.memory[self.register_HL.get() as usize] = self.register_BC.get_left();
+        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_BC.get_left();
         self.ticks += 8;
     }
 
     fn opcode_load_HLC(&mut self) {
-        self.memory[self.register_HL.get() as usize] = self.register_BC.get_right();
+        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_BC.get_right();
         self.ticks += 8;
     }
 
     fn opcode_load_HLD(&mut self) {
-        self.memory[self.register_HL.get() as usize] = self.register_DE.get_left();
+        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_DE.get_left();
         self.ticks += 8;
     }
 
     fn opcode_load_HLE(&mut self) {
-        self.memory[self.register_HL.get() as usize] = self.register_DE.get_right();
+        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_DE.get_right();
         self.ticks += 8;
     }
 
     fn opcode_load_HLH(&mut self) {
-        self.memory[self.register_HL.get() as usize] = self.register_HL.get_left();
+        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_HL.get_left();
         self.ticks += 8;
     }
 
     fn opcode_load_HLL(&mut self) {
-        self.memory[self.register_HL.get() as usize] = self.register_HL.get_right();
+        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_HL.get_right();
         self.ticks += 8;
     }
 
     fn opcode_load_HLA(&mut self) {
-        self.memory[self.register_HL.get() as usize] = self.register_AF.get_left();
+        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_AF.get_left();
         self.ticks += 8;
     }
 
@@ -465,7 +467,7 @@ impl CPU {
     }
 
     fn opcode_load_AHL(&mut self) {
-        self.register_AF.set_left(self.memory[self.register_HL.get() as usize]);
+        self.register_AF.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
         self.ticks += 8;
     }
 
