@@ -39,10 +39,10 @@ impl Register {
 pub struct CPU {
     pub ticks: u32,
     memory_bus: Memory,
-    register_AF: Register,
-    register_BC: Register,
-    register_DE: Register,
-    register_HL: Register,
+    register_af: Register,
+    register_bc: Register,
+    register_de: Register,
+    register_hl: Register,
     stack_pointer:  u16,
     program_counter: u16,
 }
@@ -52,17 +52,17 @@ impl CPU {
         let mut cpu = CPU {
             memory_bus,
             ticks: 0,
-            register_AF: Register::new(),
-            register_BC: Register::new(),
-            register_DE: Register::new(),
-            register_HL: Register::new(),
+            register_af: Register::new(),
+            register_bc: Register::new(),
+            register_de: Register::new(),
+            register_hl: Register::new(),
             stack_pointer: 0xFFFE,
             program_counter: 0x100,
         };
-        cpu.register_AF.set(0x01B0);
-        cpu.register_BC.set(0x0013);
-        cpu.register_DE.set(0x00D8);
-        cpu.register_HL.set(0x014D);
+        cpu.register_af.set(0x01B0);
+        cpu.register_bc.set(0x0013);
+        cpu.register_de.set(0x00D8);
+        cpu.register_hl.set(0x014D);
         cpu
     }
 
@@ -148,331 +148,331 @@ impl CPU {
     }
 
     fn opcode_load_bb(&mut self) {
-        self.register_BC.set_left(self.register_BC.get_left());
+        self.register_bc.set_left(self.register_bc.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_bc(&mut self) {
-        self.register_BC.set_left(self.register_BC.get_right());
+        self.register_bc.set_left(self.register_bc.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_bd(&mut self) {
-        self.register_BC.set_left(self.register_DE.get_left());
+        self.register_bc.set_left(self.register_de.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_be(&mut self) {
-        self.register_BC.set_left(self.register_DE.get_right());
+        self.register_bc.set_left(self.register_de.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_bh(&mut self) {
-        self.register_BC.set_left(self.register_HL.get_left());
+        self.register_bc.set_left(self.register_hl.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_bl(&mut self) {
-        self.register_BC.set_left(self.register_HL.get_right());
+        self.register_bc.set_left(self.register_hl.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_bhl(&mut self) {
-        self.register_BC.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
+        self.register_bc.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
         self.ticks += 8;
     }
 
     fn opcode_load_ba(&mut self) {
-        self.register_BC.set_left(self.register_AF.get_left());
+        self.register_bc.set_left(self.register_af.get_left());
         self.ticks += 4;
     }
 
 
 
     fn opcode_load_cb(&mut self) {
-        self.register_BC.set_right(self.register_BC.get_left());
+        self.register_bc.set_right(self.register_bc.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_cc(&mut self) {
-        self.register_BC.set_right(self.register_BC.get_right());
+        self.register_bc.set_right(self.register_bc.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_cd(&mut self) {
-        self.register_BC.set_right(self.register_DE.get_left());
+        self.register_bc.set_right(self.register_de.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_ce(&mut self) {
-        self.register_BC.set_right(self.register_DE.get_right());
+        self.register_bc.set_right(self.register_de.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_ch(&mut self) {
-        self.register_BC.set_right(self.register_HL.get_left());
+        self.register_bc.set_right(self.register_hl.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_cl(&mut self) {
-        self.register_BC.set_right(self.register_HL.get_right());
+        self.register_bc.set_right(self.register_hl.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_chl(&mut self) {
-        self.register_BC.set_right(self.memory_bus.ram[self.register_HL.get() as usize]);
+        self.register_bc.set_right(self.memory_bus.ram[self.register_hl.get() as usize]);
         self.ticks += 8;
     }
 
     fn opcode_load_ca(&mut self) {
-        self.register_BC.set_right(self.register_AF.get_left());
+        self.register_bc.set_right(self.register_af.get_left());
         self.ticks += 4;
     }
 
 
 
     fn opcode_load_db(&mut self) {
-        self.register_DE.set_left(self.register_BC.get_left());
+        self.register_de.set_left(self.register_bc.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_dc(&mut self) {
-        self.register_DE.set_left(self.register_BC.get_right());
+        self.register_de.set_left(self.register_bc.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_dd(&mut self) {
-        self.register_DE.set_left(self.register_DE.get_left());
+        self.register_de.set_left(self.register_de.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_de(&mut self) {
-        self.register_DE.set_left(self.register_DE.get_right());
+        self.register_de.set_left(self.register_de.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_dh(&mut self) {
-        self.register_DE.set_left(self.register_HL.get_left());
+        self.register_de.set_left(self.register_hl.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_dl(&mut self) {
-        self.register_DE.set_left(self.register_HL.get_right());
+        self.register_de.set_left(self.register_hl.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_dhl(&mut self) {
-        self.register_DE.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
+        self.register_de.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
         self.ticks += 8;
     }
 
     fn opcode_load_da(&mut self) {
-        self.register_DE.set_left(self.register_AF.get_left());
+        self.register_de.set_left(self.register_af.get_left());
         self.ticks += 4;
     }
 
 
 
     fn opcode_load_eb(&mut self) {
-        self.register_DE.set_right(self.register_BC.get_left());
+        self.register_de.set_right(self.register_bc.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_ec(&mut self) {
-        self.register_DE.set_right(self.register_BC.get_right());
+        self.register_de.set_right(self.register_bc.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_ed(&mut self) {
-        self.register_DE.set_right(self.register_DE.get_left());
+        self.register_de.set_right(self.register_de.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_ee(&mut self) {
-        self.register_DE.set_right(self.register_DE.get_right());
+        self.register_de.set_right(self.register_de.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_eh(&mut self) {
-        self.register_DE.set_right(self.register_HL.get_left());
+        self.register_de.set_right(self.register_hl.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_el(&mut self) {
-        self.register_DE.set_right(self.register_HL.get_right());
+        self.register_de.set_right(self.register_hl.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_ehl(&mut self) {
-        self.register_DE.set_right(self.memory_bus.ram[self.register_HL.get() as usize]);
+        self.register_de.set_right(self.memory_bus.ram[self.register_hl.get() as usize]);
         self.ticks += 8;
     }
 
     fn opcode_load_ea(&mut self) {
-        self.register_DE.set_right(self.register_AF.get_left());
+        self.register_de.set_right(self.register_af.get_left());
         self.ticks += 4;
     }
 
 
 
     fn opcode_load_hb(&mut self) {
-        self.register_HL.set_left(self.register_BC.get_left());
+        self.register_hl.set_left(self.register_bc.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_hc(&mut self) {
-        self.register_HL.set_left(self.register_BC.get_right());
+        self.register_hl.set_left(self.register_bc.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_hd(&mut self) {
-        self.register_HL.set_left(self.register_DE.get_left());
+        self.register_hl.set_left(self.register_de.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_he(&mut self) {
-        self.register_HL.set_left(self.register_DE.get_right());
+        self.register_hl.set_left(self.register_de.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_hh(&mut self) {
-        self.register_HL.set_left(self.register_HL.get_left());
+        self.register_hl.set_left(self.register_hl.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_hl(&mut self) {
-        self.register_HL.set_left(self.register_HL.get_right());
+        self.register_hl.set_left(self.register_hl.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_hhl(&mut self) {
-        self.register_HL.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
+        self.register_hl.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
         self.ticks += 8;
     }
 
     fn opcode_load_ha(&mut self) {
-        self.register_HL.set_left(self.register_AF.get_left());
+        self.register_hl.set_left(self.register_af.get_left());
         self.ticks += 4;
     }
 
 
 
     fn opcode_load_lb(&mut self) {
-        self.register_HL.set_right(self.register_BC.get_left());
+        self.register_hl.set_right(self.register_bc.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_lc(&mut self) {
-        self.register_HL.set_right(self.register_BC.get_right());
+        self.register_hl.set_right(self.register_bc.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_ld(&mut self) {
-        self.register_HL.set_right(self.register_DE.get_left());
+        self.register_hl.set_right(self.register_de.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_le(&mut self) {
-        self.register_HL.set_right(self.register_DE.get_right());
+        self.register_hl.set_right(self.register_de.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_lh(&mut self) {
-        self.register_HL.set_right(self.register_HL.get_left());
+        self.register_hl.set_right(self.register_hl.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_ll(&mut self) {
-        self.register_HL.set_right(self.register_HL.get_right());
+        self.register_hl.set_right(self.register_hl.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_lhl(&mut self) {
-        self.register_HL.set_right(self.memory_bus.ram[self.register_HL.get() as usize]);
+        self.register_hl.set_right(self.memory_bus.ram[self.register_hl.get() as usize]);
         self.ticks += 8;
     }
 
     fn opcode_load_la(&mut self) {
-        self.register_HL.set_right(self.register_AF.get_left());
+        self.register_hl.set_right(self.register_af.get_left());
         self.ticks += 4;
     }
 
 
 
     fn opcode_load_hlb(&mut self) {
-        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_BC.get_left();
+        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_bc.get_left();
         self.ticks += 8;
     }
 
     fn opcode_load_hlc(&mut self) {
-        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_BC.get_right();
+        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_bc.get_right();
         self.ticks += 8;
     }
 
     fn opcode_load_hld(&mut self) {
-        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_DE.get_left();
+        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_de.get_left();
         self.ticks += 8;
     }
 
     fn opcode_load_hle(&mut self) {
-        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_DE.get_right();
+        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_de.get_right();
         self.ticks += 8;
     }
 
     fn opcode_load_hlh(&mut self) {
-        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_HL.get_left();
+        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_hl.get_left();
         self.ticks += 8;
     }
 
     fn opcode_load_hll(&mut self) {
-        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_HL.get_right();
+        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_hl.get_right();
         self.ticks += 8;
     }
 
     fn opcode_load_hla(&mut self) {
-        self.memory_bus.ram[self.register_HL.get() as usize] = self.register_AF.get_left();
+        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_af.get_left();
         self.ticks += 8;
     }
 
 
 
     fn opcode_load_ab(&mut self) {
-        self.register_AF.set_left(self.register_BC.get_left());
+        self.register_af.set_left(self.register_bc.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_ac(&mut self) {
-        self.register_AF.set_left(self.register_BC.get_right());
+        self.register_af.set_left(self.register_bc.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_ad(&mut self) {
-        self.register_AF.set_left(self.register_DE.get_left());
+        self.register_af.set_left(self.register_de.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_ae(&mut self) {
-        self.register_AF.set_left(self.register_DE.get_right());
+        self.register_af.set_left(self.register_de.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_ah(&mut self) {
-        self.register_AF.set_left(self.register_HL.get_left());
+        self.register_af.set_left(self.register_hl.get_left());
         self.ticks += 4;
     }
 
     fn opcode_load_al(&mut self) {
-        self.register_AF.set_left(self.register_HL.get_right());
+        self.register_af.set_left(self.register_hl.get_right());
         self.ticks += 4;
     }
 
     fn opcode_load_ahl(&mut self) {
-        self.register_AF.set_left(self.memory_bus.ram[self.register_HL.get() as usize]);
+        self.register_af.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
         self.ticks += 8;
     }
 
     fn opcode_load_aa(&mut self) {
-        self.register_AF.set_left(self.register_AF.get_left());
+        self.register_af.set_left(self.register_af.get_left());
         self.ticks += 4;
     }
 }
