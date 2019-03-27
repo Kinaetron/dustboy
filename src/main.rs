@@ -14,5 +14,4 @@ fn main() {
     });
 
     let mut cpu = cpu::CPU::new(memory);
-    let mut ppu = ppu::PPU::new();
 } 

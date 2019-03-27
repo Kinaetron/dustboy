@@ -135,7 +135,7 @@ impl CPU {
             0x7E => self.opcode_load_ahl(),
             0x7F => self.opcode_load_aa(),
 
-            _ => self.program_counter_inc()
+            _ => panic!("This opcode {} isn't implemented", opcode)
         }
     }
 
