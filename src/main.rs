@@ -1,7 +1,7 @@
 use std::process;
-extern crate sdl2;
 
 mod cpu;
+mod ppu;
 mod memory;
 
 fn main() {
@@ -14,4 +14,5 @@ fn main() {
     });
 
     let mut cpu = cpu::CPU::new(memory);
+    let mut ppu = ppu::PPU::new();
 } 
