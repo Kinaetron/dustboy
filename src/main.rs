@@ -14,4 +14,8 @@ fn main() {
     });
 
     let mut cpu = cpu::CPU::new(memory);
+
+    loop {
+      cpu.execute_opcode();
+    }
 } 

@@ -48,7 +48,7 @@ impl Memory {
             return  Err("file path to the rom is required".to_string());
         }*/
 
-        let rom_path = "roms/01-special.gb";
+        let rom_path = "roms/06-ld r,r.gb";
 
         let mut rom = File::open(rom_path).map_err(|e| e.description().to_string())?;
         rom.read_to_end(&mut self.cartridge).map_err(|e| e.description().to_string())?;
