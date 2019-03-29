@@ -70,8 +70,8 @@ impl CPU {
         let opcode = self.opcode_fetch();
         self.program_counter_inc();
 
-        let nn = (self.memory_bus.ram[(self.program_counter + 1) as usize] as u16) << 8 | 
-                 (self.memory_bus.ram[(self.program_counter + 2) as usize] as u16);
+        /*let nn = (self.memory_bus.ram[(self.program_counter + 1) as usize] as u16) << 8 | 
+                 (self.memory_bus.ram[(self.program_counter + 2) as usize] as u16);*/
 
         match opcode {
             0x00 => self.opcode_nop(),
@@ -148,7 +148,7 @@ impl CPU {
     }
 
     fn opcode_fetch(&mut self) -> u8 {
-        self.memory_bus.ram[self.program_counter as usize]
+        self.memory_bus.read_memory(self.program_counter as usize)
     }
 
     fn opcode_load_bb(&mut self) {
@@ -182,7 +182,9 @@ impl CPU {
     }
 
     fn opcode_load_bhl(&mut self) {
-        self.register_bc.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
+        let addr = self.register_hl.get() as usize;
+
+        self.register_bc.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
     }
 
@@ -224,7 +226,9 @@ impl CPU {
     }
 
     fn opcode_load_chl(&mut self) {
-        self.register_bc.set_right(self.memory_bus.ram[self.register_hl.get() as usize]);
+        let addr = self.register_hl.get() as usize;
+
+        self.register_bc.set_right(self.memory_bus.read_memory(addr));
         self.ticks += 8;
     }
 
@@ -266,7 +270,9 @@ impl CPU {
     }
 
     fn opcode_load_dhl(&mut self) {
-        self.register_de.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
+        let addr = self.register_hl.get() as usize;
+
+        self.register_de.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
     }
 
@@ -308,7 +314,9 @@ impl CPU {
     }
 
     fn opcode_load_ehl(&mut self) {
-        self.register_de.set_right(self.memory_bus.ram[self.register_hl.get() as usize]);
+        let addr = self.register_hl.get() as usize;
+
+        self.register_de.set_right(self.memory_bus.read_memory(addr));
         self.ticks += 8;
     }
 
@@ -350,7 +358,9 @@ impl CPU {
     }
 
     fn opcode_load_hhl(&mut self) {
-        self.register_hl.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
+        let addr = self.register_hl.get() as usize;
+
+        self.register_hl.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
     }
 
@@ -392,7 +402,9 @@ impl CPU {
     }
 
     fn opcode_load_lhl(&mut self) {
-        self.register_hl.set_right(self.memory_bus.ram[self.register_hl.get() as usize]);
+        let addr = self.register_hl.get() as usize;
+
+        self.register_hl.set_right(self.memory_bus.read_memory(addr));
         self.ticks += 8;
     }
 
@@ -404,37 +416,52 @@ impl CPU {
 
 
     fn opcode_load_hlb(&mut self) {
-        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_bc.get_left();
+
+        let addr = self.register_hl.get() as usize;
+
+        self.memory_bus.write_memory(addr, self.register_bc.get_left());
         self.ticks += 8;
     }
 
     fn opcode_load_hlc(&mut self) {
-        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_bc.get_right();
+        let addr = self.register_hl.get() as usize;
+        
+        self.memory_bus.write_memory(addr, self.register_bc.get_right());
         self.ticks += 8;
     }
 
     fn opcode_load_hld(&mut self) {
-        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_de.get_left();
+        let addr = self.register_hl.get() as usize;
+
+        self.memory_bus.write_memory(addr, self.register_de.get_left());
         self.ticks += 8;
     }
 
     fn opcode_load_hle(&mut self) {
-        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_de.get_right();
+        let addr = self.register_hl.get() as usize;
+
+        self.memory_bus.write_memory(addr, self.register_de.get_right());
         self.ticks += 8;
     }
 
     fn opcode_load_hlh(&mut self) {
-        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_hl.get_left();
+        let addr = self.register_hl.get() as usize;
+
+        self.memory_bus.write_memory(addr, self.register_hl.get_left());
         self.ticks += 8;
     }
 
     fn opcode_load_hll(&mut self) {
-        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_hl.get_right();
+        let addr = self.register_hl.get() as usize;
+
+        self.memory_bus.write_memory(addr, self.register_hl.get_right());
         self.ticks += 8;
     }
 
     fn opcode_load_hla(&mut self) {
-        self.memory_bus.ram[self.register_hl.get() as usize] = self.register_af.get_left();
+        let addr = self.register_hl.get() as usize;
+
+        self.memory_bus.write_memory(addr, self.register_af.get_left());
         self.ticks += 8;
     }
 
@@ -471,7 +498,9 @@ impl CPU {
     }
 
     fn opcode_load_ahl(&mut self) {
-        self.register_af.set_left(self.memory_bus.ram[self.register_hl.get() as usize]);
+        let addr = self.register_hl.get() as usize;
+
+        self.register_af.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
     }
 

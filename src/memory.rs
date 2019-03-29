@@ -4,7 +4,7 @@ use std::error::Error;
 use std::io::prelude::*;
 
 pub struct Memory {
-    pub ram: [u8; 0x10000],
+    ram: [u8; 0x10000],
     cartridge: Vec<u8>
 }
 
@@ -58,5 +58,13 @@ impl Memory {
             self.ram[i] = byte.map_err(|e| e.description().to_string())?;
         }
         Ok(())
+    }
+
+    pub fn read_memory(&self, addr: usize) -> u8 {
+        self.ram[addr]
+    }
+
+    pub fn write_memory(&mut self, addr: usize, data: u8) {
+        self.ram[addr] = data
     }
 }
