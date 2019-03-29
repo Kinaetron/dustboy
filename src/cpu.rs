@@ -70,8 +70,8 @@ impl CPU {
         let opcode = self.opcode_fetch();
         self.program_counter_inc();
 
-        /*let nn = (self.memory_bus.ram[(self.program_counter + 1) as usize] as u16) << 8 | 
-                 (self.memory_bus.ram[(self.program_counter + 2) as usize] as u16);*/
+        let nn = (self.memory_bus.read_memory((self.program_counter + 1) as usize) as u16) << 8 | 
+                 (self.memory_bus.read_memory((self.program_counter + 2) as usize) as u16);
 
         match opcode {
             0x00 => self.opcode_nop(),
@@ -138,8 +138,9 @@ impl CPU {
             0x7D => self.opcode_load_al(),
             0x7E => self.opcode_load_ahl(),
             0x7F => self.opcode_load_aa(),
+            0xC3 => self.opcode_jmp(nn),
 
-            _ => panic!("Opcode {} isn't implemented", opcode)
+            _ => panic!("Opcode {:X} isn't implemented", opcode)
         }
     }
 
@@ -514,5 +515,12 @@ impl CPU {
     
     fn opcode_nop(&mut self) {
         self.ticks += 4;
+    }
+
+
+
+    fn opcode_jmp(&mut self, address: u16) {
+        self.program_counter = address;   
+        self.ticks += 12;
     }
 }
