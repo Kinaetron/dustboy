@@ -65,6 +65,10 @@ impl Memory {
     }
 
     pub fn write_memory(&mut self, addr: usize, data: u8) {
-        self.ram[addr] = data
+        self.ram[addr] = data;
+
+        if addr == 0xFF01 {
+            print!("{}", data);
+        }
     }
 }

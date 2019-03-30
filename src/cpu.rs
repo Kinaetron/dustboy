@@ -1,5 +1,20 @@
 use crate::memory::*;
 
+enum ProgramCounter {
+    Next,
+    Skip,
+    Jump(u16)
+}
+
+impl ProgramCounter {
+    fn skip_if(condition: bool) -> ProgramCounter {
+        match condition {
+            true => ProgramCounter::Skip,
+            _ => ProgramCounter::Next
+        }
+    }
+}
+
 pub struct Register {
     value: u16
 }
@@ -37,7 +52,7 @@ impl Register {
 }
 
 pub struct CPU {
-    pub ticks: u32,
+    ticks: u32,
     memory_bus: Memory,
     register_af: Register,
     register_bc: Register,
@@ -66,14 +81,20 @@ impl CPU {
         cpu
     }
 
+    pub fn get_ticks(&mut self) -> u32 {
+        let ticks = self.ticks; 
+        self.ticks = 0;
+
+        ticks
+    }
+
     pub fn execute_opcode(&mut self) {
-        let opcode = self.opcode_fetch();
-        self.program_counter_inc();
+        let opcode = self.fetch_opcode();
 
         let nn = (self.memory_bus.read_memory((self.program_counter + 1) as usize) as u16) << 8 | 
                  (self.memory_bus.read_memory((self.program_counter + 2) as usize) as u16);
 
-        match opcode {
+           let pc_change = match opcode {
             0x00 => self.opcode_nop(),
             0x40 => self.opcode_load_bb(),
             0x41 => self.opcode_load_bc(),
@@ -141,386 +162,518 @@ impl CPU {
             0xC3 => self.opcode_jmp(nn),
 
             _ => panic!("Opcode {:X} isn't implemented", opcode)
+        };
+
+         match pc_change {
+            ProgramCounter::Next => self.program_counter += 1,
+            ProgramCounter::Skip => self.program_counter += 2 ,
+            ProgramCounter::Jump(address) => self.program_counter = address
         }
     }
 
-    fn program_counter_inc(&mut self) {
-        self.program_counter += 1;
-    }
 
-    fn opcode_fetch(&mut self) -> u8 {
+    fn fetch_opcode(&mut self) -> u8 {
         self.memory_bus.read_memory(self.program_counter as usize)
     }
 
-    fn opcode_load_bb(&mut self) {
+    fn opcode_load_bb(&mut self) -> ProgramCounter {
         self.register_bc.set_left(self.register_bc.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_bc(&mut self) {
+    fn opcode_load_bc(&mut self) -> ProgramCounter {
         self.register_bc.set_left(self.register_bc.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_bd(&mut self) {
+    fn opcode_load_bd(&mut self) -> ProgramCounter {
         self.register_bc.set_left(self.register_de.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_be(&mut self) {
+    fn opcode_load_be(&mut self) -> ProgramCounter {
         self.register_bc.set_left(self.register_de.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_bh(&mut self) {
+    fn opcode_load_bh(&mut self) -> ProgramCounter {
         self.register_bc.set_left(self.register_hl.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_bl(&mut self) {
+    fn opcode_load_bl(&mut self) -> ProgramCounter {
         self.register_bc.set_left(self.register_hl.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_bhl(&mut self) {
+    fn opcode_load_bhl(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.register_bc.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ba(&mut self) {
+    fn opcode_load_ba(&mut self) -> ProgramCounter {
         self.register_bc.set_left(self.register_af.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_load_cb(&mut self) {
+    fn opcode_load_cb(&mut self) -> ProgramCounter {
         self.register_bc.set_right(self.register_bc.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_cc(&mut self) {
+    fn opcode_load_cc(&mut self) -> ProgramCounter {
         self.register_bc.set_right(self.register_bc.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_cd(&mut self) {
+    fn opcode_load_cd(&mut self) -> ProgramCounter {
         self.register_bc.set_right(self.register_de.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ce(&mut self) {
+    fn opcode_load_ce(&mut self) -> ProgramCounter {
         self.register_bc.set_right(self.register_de.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ch(&mut self) {
+    fn opcode_load_ch(&mut self) -> ProgramCounter {
         self.register_bc.set_right(self.register_hl.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_cl(&mut self) {
+    fn opcode_load_cl(&mut self) -> ProgramCounter {
         self.register_bc.set_right(self.register_hl.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_chl(&mut self) {
+    fn opcode_load_chl(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.register_bc.set_right(self.memory_bus.read_memory(addr));
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ca(&mut self) {
+    fn opcode_load_ca(&mut self) -> ProgramCounter {
         self.register_bc.set_right(self.register_af.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_load_db(&mut self) {
+    fn opcode_load_db(&mut self) -> ProgramCounter {
         self.register_de.set_left(self.register_bc.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_dc(&mut self) {
+    fn opcode_load_dc(&mut self) -> ProgramCounter {
         self.register_de.set_left(self.register_bc.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_dd(&mut self) {
+    fn opcode_load_dd(&mut self) -> ProgramCounter {
         self.register_de.set_left(self.register_de.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_de(&mut self) {
+    fn opcode_load_de(&mut self) -> ProgramCounter {
         self.register_de.set_left(self.register_de.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_dh(&mut self) {
+    fn opcode_load_dh(&mut self) -> ProgramCounter {
         self.register_de.set_left(self.register_hl.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_dl(&mut self) {
+    fn opcode_load_dl(&mut self) -> ProgramCounter {
         self.register_de.set_left(self.register_hl.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_dhl(&mut self) {
+    fn opcode_load_dhl(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.register_de.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_da(&mut self) {
+    fn opcode_load_da(&mut self) -> ProgramCounter {
         self.register_de.set_left(self.register_af.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_load_eb(&mut self) {
+    fn opcode_load_eb(&mut self) -> ProgramCounter {
         self.register_de.set_right(self.register_bc.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ec(&mut self) {
+    fn opcode_load_ec(&mut self) -> ProgramCounter {
         self.register_de.set_right(self.register_bc.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ed(&mut self) {
+    fn opcode_load_ed(&mut self) -> ProgramCounter {
         self.register_de.set_right(self.register_de.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ee(&mut self) {
+    fn opcode_load_ee(&mut self) -> ProgramCounter {
         self.register_de.set_right(self.register_de.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_eh(&mut self) {
+    fn opcode_load_eh(&mut self) -> ProgramCounter {
         self.register_de.set_right(self.register_hl.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_el(&mut self) {
+    fn opcode_load_el(&mut self) -> ProgramCounter {
         self.register_de.set_right(self.register_hl.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ehl(&mut self) {
+    fn opcode_load_ehl(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.register_de.set_right(self.memory_bus.read_memory(addr));
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ea(&mut self) {
+    fn opcode_load_ea(&mut self) -> ProgramCounter {
         self.register_de.set_right(self.register_af.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_load_hb(&mut self) {
+    fn opcode_load_hb(&mut self) -> ProgramCounter {
         self.register_hl.set_left(self.register_bc.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hc(&mut self) {
+    fn opcode_load_hc(&mut self) -> ProgramCounter {
         self.register_hl.set_left(self.register_bc.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hd(&mut self) {
+    fn opcode_load_hd(&mut self) -> ProgramCounter {
         self.register_hl.set_left(self.register_de.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_he(&mut self) {
+    fn opcode_load_he(&mut self) -> ProgramCounter {
         self.register_hl.set_left(self.register_de.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hh(&mut self) {
+    fn opcode_load_hh(&mut self) -> ProgramCounter {
         self.register_hl.set_left(self.register_hl.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hl(&mut self) {
+    fn opcode_load_hl(&mut self) -> ProgramCounter {
         self.register_hl.set_left(self.register_hl.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hhl(&mut self) {
+    fn opcode_load_hhl(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.register_hl.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ha(&mut self) {
+    fn opcode_load_ha(&mut self) -> ProgramCounter {
         self.register_hl.set_left(self.register_af.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_load_lb(&mut self) {
+    fn opcode_load_lb(&mut self) -> ProgramCounter {
         self.register_hl.set_right(self.register_bc.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_lc(&mut self) {
+    fn opcode_load_lc(&mut self) -> ProgramCounter {
         self.register_hl.set_right(self.register_bc.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ld(&mut self) {
+    fn opcode_load_ld(&mut self) -> ProgramCounter {
         self.register_hl.set_right(self.register_de.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_le(&mut self) {
+    fn opcode_load_le(&mut self) -> ProgramCounter {
         self.register_hl.set_right(self.register_de.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_lh(&mut self) {
+    fn opcode_load_lh(&mut self) -> ProgramCounter {
         self.register_hl.set_right(self.register_hl.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ll(&mut self) {
+    fn opcode_load_ll(&mut self) -> ProgramCounter {
         self.register_hl.set_right(self.register_hl.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_lhl(&mut self) {
+    fn opcode_load_lhl(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.register_hl.set_right(self.memory_bus.read_memory(addr));
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_la(&mut self) {
+    fn opcode_load_la(&mut self) -> ProgramCounter {
         self.register_hl.set_right(self.register_af.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_load_hlb(&mut self) {
+    fn opcode_load_hlb(&mut self) -> ProgramCounter {
 
         let addr = self.register_hl.get() as usize;
 
         self.memory_bus.write_memory(addr, self.register_bc.get_left());
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hlc(&mut self) {
+    fn opcode_load_hlc(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
         
         self.memory_bus.write_memory(addr, self.register_bc.get_right());
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hld(&mut self) {
+    fn opcode_load_hld(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.memory_bus.write_memory(addr, self.register_de.get_left());
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hle(&mut self) {
+    fn opcode_load_hle(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.memory_bus.write_memory(addr, self.register_de.get_right());
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hlh(&mut self) {
+    fn opcode_load_hlh(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.memory_bus.write_memory(addr, self.register_hl.get_left());
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hll(&mut self) {
+    fn opcode_load_hll(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.memory_bus.write_memory(addr, self.register_hl.get_right());
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_hla(&mut self) {
+    fn opcode_load_hla(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.memory_bus.write_memory(addr, self.register_af.get_left());
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_load_ab(&mut self) {
+    fn opcode_load_ab(&mut self) -> ProgramCounter {
         self.register_af.set_left(self.register_bc.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ac(&mut self) {
+    fn opcode_load_ac(&mut self) -> ProgramCounter {
         self.register_af.set_left(self.register_bc.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ad(&mut self) {
+    fn opcode_load_ad(&mut self) -> ProgramCounter {
         self.register_af.set_left(self.register_de.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ae(&mut self) {
+    fn opcode_load_ae(&mut self) -> ProgramCounter {
         self.register_af.set_left(self.register_de.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ah(&mut self) {
+    fn opcode_load_ah(&mut self) -> ProgramCounter {
         self.register_af.set_left(self.register_hl.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_al(&mut self) {
+    fn opcode_load_al(&mut self) -> ProgramCounter {
         self.register_af.set_left(self.register_hl.get_right());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_ahl(&mut self) {
+    fn opcode_load_ahl(&mut self) -> ProgramCounter {
         let addr = self.register_hl.get() as usize;
 
         self.register_af.set_left(self.memory_bus.read_memory(addr));
         self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
-    fn opcode_load_aa(&mut self) {
+    fn opcode_load_aa(&mut self) -> ProgramCounter {
         self.register_af.set_left(self.register_af.get_left());
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
     
-    fn opcode_nop(&mut self) {
+    fn opcode_nop(&mut self) -> ProgramCounter {
         self.ticks += 4;
+
+        ProgramCounter::Next
     }
 
 
 
-    fn opcode_jmp(&mut self, address: u16) {
-        self.program_counter = address;   
+    fn opcode_jmp(&mut self, address: u16) -> ProgramCounter {  
         self.ticks += 12;
+
+        ProgramCounter::Jump(address)
     }
 }
