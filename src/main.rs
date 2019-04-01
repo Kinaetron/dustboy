@@ -13,7 +13,7 @@ fn main() {
         process::exit(1);
     });
 
-    let mut cpu = cpu::CPU::new(memory);
+    let mut cpu = cpu::CPU::new(&mut memory);
 
     loop {
       cpu.execute_opcode();

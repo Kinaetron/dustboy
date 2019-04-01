@@ -51,9 +51,9 @@ impl Register {
     }
 }
 
-pub struct CPU {
+pub struct CPU<'a> {
     ticks: u32,
-    memory_bus: Memory,
+    memory_bus: &'a mut Memory,
     register_af: Register,
     register_bc: Register,
     register_de: Register,
@@ -62,8 +62,8 @@ pub struct CPU {
     program_counter: u16,
 }
 
-impl CPU {
-    pub fn new(memory_bus: Memory) -> CPU {
+impl<'a> CPU<'a> {
+    pub fn new(memory_bus: &'a mut Memory) -> CPU<'a> {
         let mut cpu = CPU {
             memory_bus,
             ticks: 0,
