@@ -52,10 +52,10 @@ impl Memory {
 
         let mut rom = File::open(rom_path).map_err(|e| e.description().to_string())?;
         rom.read_to_end(&mut self.cartridge).map_err(|e| e.description().to_string())?;
-        self.cartridge.shrink_to_fit();
 
        for (i, byte) in self.cartridge.bytes().enumerate() {
             self.ram[i] = byte.map_err(|e| e.description().to_string())?;
+            print!("Opcode {:X} is in the RAM", self.ram[i])
         }
         Ok(())
     }
