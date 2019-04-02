@@ -42,20 +42,13 @@ impl Memory {
 
     pub fn load_rom(&mut self) -> Result<(), String> {
 
-       //let args: Vec<String> = env::args().collect();
-
-        /*if args.len() <= 1 {
-            return  Err("file path to the rom is required".to_string());
-        }*/
-
         let rom_path = "roms/06-ld r,r.gb";
 
         let mut rom = File::open(rom_path).map_err(|e| e.description().to_string())?;
         rom.read_to_end(&mut self.cartridge).map_err(|e| e.description().to_string())?;
 
        for (i, byte) in self.cartridge.bytes().enumerate() {
-            self.ram[i] = byte.map_err(|e| e.description().to_string())?;
-            print!("Opcode {:X} is in the RAM", self.ram[i])
+            self.ram[i] =  byte.map_err(|e| e.description().to_string())?;
         }
         Ok(())
     }
@@ -68,7 +61,7 @@ impl Memory {
         self.ram[addr] = data;
 
         if addr == 0xFF01 {
-            print!("{}", data);
+            print!("{:X}", data);
         }
     }
 }

@@ -91,11 +91,13 @@ impl<'a> CPU<'a> {
     pub fn execute_opcode(&mut self) {
         let opcode = self.fetch_opcode();
 
-        let nn = (self.memory_bus.read_memory((self.program_counter + 1) as usize) as u16) << 8 | 
-                 (self.memory_bus.read_memory((self.program_counter + 2) as usize) as u16);
+        let nn = (self.memory_bus.read_memory((self.program_counter + 2) as usize) as u16) << 8 | 
+                 (self.memory_bus.read_memory((self.program_counter + 1) as usize) as u16);
 
            let pc_change = match opcode {
             0x00 => self.opcode_nop(),
+            0x11 => self.opcode_load_de_16(nn),
+            0x21 => self.opcode_load_hl_16(nn),
             0x40 => self.opcode_load_bb(),
             0x41 => self.opcode_load_bc(),
             0x42 => self.opcode_load_bd(),
@@ -174,6 +176,20 @@ impl<'a> CPU<'a> {
 
     fn fetch_opcode(&mut self) -> u8 {
         self.memory_bus.read_memory(self.program_counter as usize)
+    }
+
+    fn opcode_load_de_16(&mut self, value: u16) -> ProgramCounter {
+        self.register_de.set(value);
+        self.ticks += 12;
+
+        ProgramCounter::Next
+    }
+
+    fn opcode_load_hl_16(&mut self, value: u16) -> ProgramCounter {
+        self.register_hl.set(value);
+        self.ticks += 12;
+
+        ProgramCounter::Next
     }
 
     fn opcode_load_bb(&mut self) -> ProgramCounter {
