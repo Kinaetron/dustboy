@@ -3,6 +3,7 @@ use crate::memory::*;
 enum ProgramCounter {
     Next,
     Skip,
+    Skip_2,
     Jump(u16)
 }
 
@@ -170,7 +171,8 @@ impl<'a> CPU<'a> {
 
          match pc_change {
             ProgramCounter::Next => self.program_counter += 1,
-            ProgramCounter::Skip => self.program_counter += 2 ,
+            ProgramCounter::Skip => self.program_counter += 2,
+            ProgramCounter::Skip_2 => self.program_counter += 3,
             ProgramCounter::Jump(address) => self.program_counter = address
         }
     }
@@ -213,14 +215,18 @@ impl<'a> CPU<'a> {
         self.register_de.set(value);
         self.ticks += 12;
 
-        ProgramCounter::Next
+        println!("16 bit operation de");
+
+        ProgramCounter::Skip_2
     }
 
     fn opcode_load_hl_16(&mut self, value: u16) -> ProgramCounter {
         self.register_hl.set(value);
         self.ticks += 12;
 
-        ProgramCounter::Next
+        println!("16 bit operation hl");
+
+        ProgramCounter::Skip_2
     }
 
     fn opcode_load_bb(&mut self) -> ProgramCounter {
