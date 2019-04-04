@@ -35,7 +35,7 @@ impl Register {
     }
 
     pub fn set_left(&mut self, value: u8) {
-        self.value = (value as u16) << 8 | self.value;
+        self.value = (value as u16) << 8 | (self.value & 0x00FF);
     }
 
     pub fn get_left(&self) -> u8 {
@@ -43,7 +43,7 @@ impl Register {
     }
 
     pub fn set_right(&mut self, value: u8) {
-        self.value = (value as u16) | self.value;
+        self.value = (self.value & 0xFF00) | (value as u16);
     }
 
     pub fn get_right(&self) -> u8 {
@@ -58,7 +58,6 @@ pub struct CPU<'a> {
     register_bc: Register,
     register_de: Register,
     register_hl: Register,
-    stack_pointer:  u16,
     program_counter: u16,
 }
 
@@ -71,7 +70,6 @@ impl<'a> CPU<'a> {
             register_bc: Register::new(),
             register_de: Register::new(),
             register_hl: Register::new(),
-            stack_pointer: 0xFFFE,
             program_counter: 0x100,
         };
         cpu.register_af.set(0x01B0);
@@ -91,11 +89,14 @@ impl<'a> CPU<'a> {
     pub fn execute_opcode(&mut self) {
         let opcode = self.fetch_opcode();
 
+        let n = self.memory_bus.read_memory((self.program_counter + 1)as usize); 
+
         let nn = (self.memory_bus.read_memory((self.program_counter + 2) as usize) as u16) << 8 | 
                  (self.memory_bus.read_memory((self.program_counter + 1) as usize) as u16);
 
            let pc_change = match opcode {
             0x00 => self.opcode_nop(),
+            0x0E => self.opcode_load_cn(n),
             0x11 => self.opcode_load_de_16(nn),
             0x21 => self.opcode_load_hl_16(nn),
             0x40 => self.opcode_load_bb(),
@@ -161,6 +162,7 @@ impl<'a> CPU<'a> {
             0x7D => self.opcode_load_al(),
             0x7E => self.opcode_load_ahl(),
             0x7F => self.opcode_load_aa(),
+            0xC0 => self.opcode_rtn_nz(),
             0xC3 => self.opcode_jmp(nn),
 
             _ => panic!("Opcode {:X} isn't implemented", opcode)
@@ -176,6 +178,35 @@ impl<'a> CPU<'a> {
 
     fn fetch_opcode(&mut self) -> u8 {
         self.memory_bus.read_memory(self.program_counter as usize)
+    }
+
+    fn get_z_flag(&self) -> bool {
+         ((self.register_af.get_right() & 0x80) >> 7) != 0
+    }
+
+    fn get_n_flag(&self) -> bool {
+         ((self.register_af.get_right() & 0x40) >> 6) != 0
+    }
+
+    fn get_h_flag(&self) -> bool {
+         ((self.register_af.get_right() & 0x20) >> 5) != 0
+    }
+
+    fn get_c_flag(&self) -> bool {
+         ((self.register_af.get_right() & 0x10) >> 4) != 0
+    }
+
+    fn opcode_nop(&mut self) -> ProgramCounter {
+        self.ticks += 4;
+
+        ProgramCounter::Next
+    }
+
+    fn opcode_load_cn(&mut self, value: u8) -> ProgramCounter {
+        self.register_bc.set_right(value);
+        self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
     fn opcode_load_de_16(&mut self, value: u16) -> ProgramCounter {
@@ -677,13 +708,16 @@ impl<'a> CPU<'a> {
     }
 
 
+    fn opcode_rtn_nz(&mut self) -> ProgramCounter {
 
-    
-    fn opcode_nop(&mut self) -> ProgramCounter {
-        self.ticks += 4;
+        if(self.get_z_flag() == false) {
+            self.ticks += 8;
+            return ProgramCounter::Jump(self.memory_bus.pop_16());
+        }
 
         ProgramCounter::Next
     }
+
 
 
 

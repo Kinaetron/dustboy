@@ -5,14 +5,16 @@ use std::io::prelude::*;
 
 pub struct Memory {
     ram: [u8; 0x10000],
-    cartridge: Vec<u8>
+    cartridge: Vec<u8>,
+    stack_pointer:  u16,
 }
 
 impl Memory {
     pub fn new()-> Memory {
         let mut memory = Memory {
             ram: [0; 0x10000],
-            cartridge: Vec::new()
+            cartridge: Vec::new(),
+            stack_pointer: 0xFFFE,
         };
 
         memory.ram[0xFF10] = 0x80;
@@ -36,7 +38,6 @@ impl Memory {
         memory.ram[0xFF47] = 0xFC;
         memory.ram[0xFF48] = 0xFF;
         memory.ram[0xFF49] = 0xFF;
-
         memory
     }
 
@@ -63,5 +64,35 @@ impl Memory {
         if addr == 0xFF01 {
             print!("{:X}", data);
         }
+    }
+
+    pub fn set_stack_point(&mut self, stack_pointer: u16) {
+        self.stack_pointer = stack_pointer
+    }
+
+    pub fn get_stack_pointer(&self) -> u16 {
+        self.stack_pointer
+    }
+
+    pub fn push_16(&mut self, value: u16) {
+        let byte_one = ((value >> 8) & 0xFF) as u8;
+        let byte_two = (value & 0xFF) as u8;
+
+        self.stack_pointer -= 1;
+        self.ram[self.stack_pointer as usize] = byte_one;
+
+        self.stack_pointer -= 1;
+        self.ram[self.stack_pointer as usize] = byte_two;
+    }
+
+    pub fn pop_16(&mut self) -> u16 {
+
+        let byte_one = self.ram[self.stack_pointer as usize];
+        self.stack_pointer += 1;
+
+        let byte_two = self.ram[self.stack_pointer as usize];
+        self.stack_pointer += 1;
+
+        (byte_two as u16) << 8 | (byte_one as u16)
     }
 }
