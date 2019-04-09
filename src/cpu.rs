@@ -207,6 +207,7 @@ impl<'a> CPU<'a> {
             0xAF => self.opcode_xor_aa(),
             0xC0 => self.opcode_rtn_nz(),
             0xC3 => self.opcode_jmp(nn),
+            0xCB => self.cb_opcodes(),
 
             _ => panic!("Opcode {:X} isn't implemented", opcode)
         };
@@ -219,6 +220,11 @@ impl<'a> CPU<'a> {
         }
     }
 
+    fn pc_inc(&mut self) -> u16 {
+        self.program_counter += 1;
+
+        self.program_counter
+    }
 
     fn fetch_opcode(&mut self) -> u8 {
         self.memory_bus.read_memory(self.program_counter as usize)
@@ -877,5 +883,23 @@ impl<'a> CPU<'a> {
         self.ticks += 12;
 
         ProgramCounter::Jump(address)
+    }
+
+
+
+    fn cb_opcodes(&mut self) -> ProgramCounter {
+        let opcode = self.pc_inc();
+
+        let pc_change = match opcode {
+                0x7C => self.opcode_h_bit7(),
+
+            _ => panic!("Opcode {:X} isn't implemented", opcode)
+        };
+        
+        pc_change   
+    }
+
+    fn opcode_h_bit7(&mut self) -> ProgramCounter {
+
     }
 }
