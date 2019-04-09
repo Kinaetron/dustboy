@@ -1,5 +1,15 @@
 use crate::memory::*;
 
+const Z_FLAG : u8 = 7;
+const N_FLAG : u8 = 6;
+const H_FLAG : u8 = 5;
+const C_FLAG : u8 = 4;
+
+const Z_FLAG_BIT : u8 = 0x80;
+const N_FLAG_BIT : u8 = 0x40;
+const H_FLAG_BIT : u8 = 0x20;
+const C_FLAG_BIT : u8 = 0x10;
+
 enum ProgramCounter {
     Next,
     Skip,
@@ -49,6 +59,30 @@ impl Register {
 
     pub fn get_right(&self) -> u8 {
         self.value as u8
+    }
+
+    pub fn set_bit_right(&mut self, offset: u8) {
+         self.set_right((0x01 << offset) | self.get_right());
+    }
+
+    pub fn reset_bit_right(&mut self, offset: u8) {
+         self.set_right((0x00 << offset) | self.get_right());
+    }
+
+    pub fn get_bit_right(&self, offset: u8, bit_value: u8) -> bool {
+        ((self.get_right() & bit_value) >> offset) != 0
+    }
+
+    pub fn set_bit_left(&mut self, offset: u8) {
+         self.set_left((0x01 << offset) | self.get_left());
+    }
+
+    pub fn reset_bit_left(&mut self, offset: u8) {
+         self.set_left((0x00 << offset) | self.get_left());
+    }
+
+    pub fn get_bit_left(&self, offset: u8, bit_value: u8) -> bool {
+        ((self.get_left() & bit_value) >> offset) != 0
     }
 
     pub fn inc(&mut self) -> u16 {
@@ -207,7 +241,7 @@ impl<'a> CPU<'a> {
             0xAF => self.opcode_xor_aa(),
             0xC0 => self.opcode_rtn_nz(),
             0xC3 => self.opcode_jmp(nn),
-            0xCB => self.cb_opcodes(),
+            //0xCB => self.cb_opcodes(),
 
             _ => panic!("Opcode {:X} isn't implemented", opcode)
         };
@@ -228,58 +262,6 @@ impl<'a> CPU<'a> {
 
     fn fetch_opcode(&mut self) -> u8 {
         self.memory_bus.read_memory(self.program_counter as usize)
-    }
-
-    fn get_z_flag(&self) -> bool {
-         ((self.register_af.get_right() & 0x80) >> 7) != 0
-    }
-
-    fn get_n_flag(&self) -> bool {
-         ((self.register_af.get_right() & 0x40) >> 6) != 0
-    }
-
-    fn get_h_flag(&self) -> bool {
-         ((self.register_af.get_right() & 0x20) >> 5) != 0
-    }
-
-    fn get_c_flag(&self) -> bool {
-         ((self.register_af.get_right() & 0x10) >> 4) != 0
-    }
-
-    fn set_z_flag(&mut self) {
-       self.set_flag(7, 0x01);
-    }
-
-    fn reset_z_flag(&mut self) {
-        self.set_flag(7, 0x00);
-    }
-
-    fn set_n_flag(&mut self) {
-       self.set_flag(6, 0x01);
-    }
-
-    fn reset_n_flag(&mut self) {
-        self.set_flag(6, 0x00);
-    }
-
-    fn set_h_flag(&mut self) {
-       self.set_flag(5, 0x01);
-    }
-
-    fn reset_h_flag(&mut self) {
-        self.set_flag(5, 0x00);
-    }
-
-    fn set_c_flag(&mut self) {
-       self.set_flag(4, 0x01);
-    }
-
-    fn reset_c_flag(&mut self) {
-        self.set_flag(4, 0x00);
-    }
-
-    fn set_flag(&mut self, offset: u8, value: u8) {
-        self.register_af.set_right((value << offset) | self.register_af.get_right());
     }
 
     fn opcode_nop(&mut self) -> ProgramCounter {
@@ -319,7 +301,7 @@ impl<'a> CPU<'a> {
 
     fn opcode_jmp_nz(&mut self, value: i8)  -> ProgramCounter {
 
-        if self.get_z_flag() == false {
+        if self.register_af.get_bit_right(Z_FLAG, Z_FLAG_BIT) == false {
             self.program_counter = self.program_counter.wrapping_add(2)
                                                        .wrapping_add(value as u16);
             
@@ -850,15 +832,15 @@ impl<'a> CPU<'a> {
         self.register_af.set_left(value);
 
         if self.register_af.get_left() == 0 {
-            self.reset_z_flag();
+            self.register_af.reset_bit_right(Z_FLAG);
         }
         else {
-            self.set_z_flag();
+            self.register_af.set_bit_right(Z_FLAG);
         }
 
-        self.reset_n_flag();
-        self.reset_h_flag();
-        self.reset_c_flag();
+        self.register_af.reset_bit_right(N_FLAG);
+        self.register_af.reset_bit_right(H_FLAG);
+        self.register_af.reset_bit_right(C_FLAG);
         
         self.ticks += 4;
 
@@ -868,7 +850,7 @@ impl<'a> CPU<'a> {
 
     fn opcode_rtn_nz(&mut self) -> ProgramCounter {
 
-        if self.get_z_flag() == false {
+        if self.register_af.get_bit_right(Z_FLAG, Z_FLAG_BIT) == false {
             self.ticks += 8;
             return ProgramCounter::Jump(self.memory_bus.pop_16());
         }
@@ -887,7 +869,7 @@ impl<'a> CPU<'a> {
 
 
 
-    fn cb_opcodes(&mut self) -> ProgramCounter {
+    /*fn cb_opcodes(&mut self) -> ProgramCounter {
         let opcode = self.pc_inc();
 
         let pc_change = match opcode {
@@ -900,6 +882,6 @@ impl<'a> CPU<'a> {
     }
 
     fn opcode_h_bit7(&mut self) -> ProgramCounter {
-
-    }
+        
+    }*/
 }
