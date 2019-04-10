@@ -65,7 +65,7 @@ impl Register {
          self.set_right((0x01 << offset) | self.get_right());
     }
 
-    pub fn reset_bit_right(&mut self, offset: u8) {
+    pub fn clear_bit_right(&mut self, offset: u8) {
          self.set_right((0x00 << offset) | self.get_right());
     }
 
@@ -77,7 +77,7 @@ impl Register {
          self.set_left((0x01 << offset) | self.get_left());
     }
 
-    pub fn reset_bit_left(&mut self, offset: u8) {
+    pub fn clear_bit_left(&mut self, offset: u8) {
          self.set_left((0x00 << offset) | self.get_left());
     }
 
@@ -241,7 +241,7 @@ impl<'a> CPU<'a> {
             0xAF => self.opcode_xor_aa(),
             0xC0 => self.opcode_rtn_nz(),
             0xC3 => self.opcode_jmp(nn),
-            //0xCB => self.cb_opcodes(),
+            0xCB => self.cb_opcodes(),
 
             _ => panic!("Opcode {:X} isn't implemented", opcode)
         };
@@ -254,10 +254,8 @@ impl<'a> CPU<'a> {
         }
     }
 
-    fn pc_inc(&mut self) -> u16 {
+    fn pc_inc(&mut self) {
         self.program_counter += 1;
-
-        self.program_counter
     }
 
     fn fetch_opcode(&mut self) -> u8 {
@@ -337,7 +335,9 @@ impl<'a> CPU<'a> {
         let value = self.memory_bus.read_memory((self.register_hl.get()) as usize);
 
         self.register_af.set_left(value);
-        self.register_hl.dec_left();
+        self.register_hl.dec();
+
+        println!("Register HL {:X}",self.register_hl.get());    
         self.ticks += 8;
 
         ProgramCounter::Next
@@ -838,9 +838,9 @@ impl<'a> CPU<'a> {
             self.register_af.set_bit_right(Z_FLAG);
         }
 
-        self.register_af.reset_bit_right(N_FLAG);
-        self.register_af.reset_bit_right(H_FLAG);
-        self.register_af.reset_bit_right(C_FLAG);
+        self.register_af.clear_bit_right(N_FLAG);
+        self.register_af.clear_bit_right(H_FLAG);
+        self.register_af.clear_bit_right(C_FLAG);
         
         self.ticks += 4;
 
@@ -869,8 +869,10 @@ impl<'a> CPU<'a> {
 
 
 
-    /*fn cb_opcodes(&mut self) -> ProgramCounter {
-        let opcode = self.pc_inc();
+    fn cb_opcodes(&mut self) -> ProgramCounter {
+
+        self.pc_inc();
+        let opcode = self.fetch_opcode();
 
         let pc_change = match opcode {
                 0x7C => self.opcode_h_bit7(),
@@ -882,6 +884,22 @@ impl<'a> CPU<'a> {
     }
 
     fn opcode_h_bit7(&mut self) -> ProgramCounter {
-        
-    }*/
+           
+        println!("Register H {:X}", self.register_hl.get_left());
+
+            if self.register_hl.get_bit_left(7, 0x80) == true {
+                self.register_af.clear_bit_right(Z_FLAG);
+            }
+            else {
+               self.register_af.set_bit_right(Z_FLAG); 
+            }
+
+            self.register_af.clear_bit_right(N_FLAG);
+            self.register_af.set_bit_right(H_FLAG);
+
+        println!("Flags {:X}", self.register_af.get_right());
+
+           self.ticks += 8;
+           ProgramCounter::Next
+    }
 }
