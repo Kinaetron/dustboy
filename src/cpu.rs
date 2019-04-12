@@ -62,23 +62,23 @@ impl Register {
     }
 
     pub fn set_bit_right(&mut self, offset: u8) {
-         self.set_right((0x01 << offset) | self.get_right());
+         self.set_right((1 << offset) | self.get_right());
     }
 
     pub fn clear_bit_right(&mut self, offset: u8) {
-         self.set_right((0x00 << offset) | self.get_right());
+         self.set_right(!(1 << offset) & self.get_right());
     }
 
-    pub fn get_bit_right(&self, offset: u8, bit_value: u8) -> bool {
+    pub fn get_bit_right(&self, offset: u8,bit_value: u8) -> bool {
         ((self.get_right() & bit_value) >> offset) != 0
     }
 
     pub fn set_bit_left(&mut self, offset: u8) {
-         self.set_left((0x01 << offset) | self.get_left());
+         self.set_left((1 << offset) | self.get_left());
     }
 
     pub fn clear_bit_left(&mut self, offset: u8) {
-         self.set_left((0x00 << offset) | self.get_left());
+         self.set_left(!(1 << offset) & self.get_left());
     }
 
     pub fn get_bit_left(&self, offset: u8, bit_value: u8) -> bool {
@@ -156,8 +156,8 @@ impl<'a> CPU<'a> {
     pub fn execute_opcode(&mut self) {
         let opcode = self.fetch_opcode();
 
-        println!("Program Counter {:X}", self.program_counter);
-        println!("Opcode {:X}", opcode);
+        //println!("Program Counter {:X}", self.program_counter);
+        //println!("Opcode {:X}", opcode);
 
         let n = self.memory_bus.read_memory((self.program_counter + 1)as usize);
 
@@ -298,12 +298,11 @@ impl<'a> CPU<'a> {
     }
 
     fn opcode_jmp_nz(&mut self, value: i8)  -> ProgramCounter {
-
         if self.register_af.get_bit_right(Z_FLAG, Z_FLAG_BIT) == false {
-            self.program_counter = self.program_counter.wrapping_add(2)
-                                                       .wrapping_add(value as u16);
+            let jump_value = self.program_counter.wrapping_add(2)
+                                                 .wrapping_add(value as u16);
             
-            return ProgramCounter::Jump(self.program_counter)
+            return ProgramCounter::Jump(jump_value);
         }
         ProgramCounter::Next
     }
@@ -336,10 +335,9 @@ impl<'a> CPU<'a> {
 
         self.register_af.set_left(value);
         self.register_hl.dec();
-
-        println!("Register HL {:X}",self.register_hl.get());    
         self.ticks += 8;
 
+        //println!("Register HL {:X}", self.register_hl.get());
         ProgramCounter::Next
     }
 
@@ -832,10 +830,10 @@ impl<'a> CPU<'a> {
         self.register_af.set_left(value);
 
         if self.register_af.get_left() == 0 {
-            self.register_af.reset_bit_right(Z_FLAG);
+            self.register_af.set_bit_right(Z_FLAG);
         }
         else {
-            self.register_af.set_bit_right(Z_FLAG);
+            self.register_af.clear_bit_right(Z_FLAG);
         }
 
         self.register_af.clear_bit_right(N_FLAG);
@@ -884,20 +882,15 @@ impl<'a> CPU<'a> {
     }
 
     fn opcode_h_bit7(&mut self) -> ProgramCounter {
-           
-        println!("Register H {:X}", self.register_hl.get_left());
-
             if self.register_hl.get_bit_left(7, 0x80) == true {
                 self.register_af.clear_bit_right(Z_FLAG);
             }
             else {
-               self.register_af.set_bit_right(Z_FLAG); 
+                self.register_af.set_bit_right(Z_FLAG); 
             }
 
             self.register_af.clear_bit_right(N_FLAG);
             self.register_af.set_bit_right(H_FLAG);
-
-        println!("Flags {:X}", self.register_af.get_right());
 
            self.ticks += 8;
            ProgramCounter::Next
