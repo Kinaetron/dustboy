@@ -13,7 +13,7 @@ const C_FLAG_BIT : u8 = 0x10;
 enum ProgramCounter {
     Next,
     Skip,
-    Skip_2,
+    Skip2,
     Jump(u16)
 }
 
@@ -156,8 +156,8 @@ impl<'a> CPU<'a> {
     pub fn execute_opcode(&mut self) {
         let opcode = self.fetch_opcode();
 
-        //println!("Program Counter {:X}", self.program_counter);
-        //println!("Opcode {:X}", opcode);
+        println!("Program Counter {:X}", self.program_counter);
+        println!("Opcode {:X}", opcode);
 
         let n = self.memory_bus.read_memory((self.program_counter + 1)as usize);
 
@@ -166,6 +166,7 @@ impl<'a> CPU<'a> {
 
            let pc_change = match opcode {
             0x00 => self.opcode_nop(),
+            0x0C => self.opcode_inc_c(),
             0x0E => self.opcode_load_cn(n),
             0x11 => self.opcode_load_de_16(nn),
             0x12 => self.opcode_load_de_a(),
@@ -175,6 +176,7 @@ impl<'a> CPU<'a> {
             0x2A => self.opcode_load_hl_a_inc(),
             0x31 => self.opcode_load_sp_16(nn),
             0x32 => self.opcode_load_hl_a_dec(),
+            0x3E => self.opcode_load_n_a(n),
             0x40 => self.opcode_load_bb(),
             0x41 => self.opcode_load_bc(),
             0x42 => self.opcode_load_bd(),
@@ -242,6 +244,8 @@ impl<'a> CPU<'a> {
             0xC0 => self.opcode_rtn_nz(),
             0xC3 => self.opcode_jmp(nn),
             0xCB => self.cb_opcodes(),
+            0xE0 => self.opcode_load_a_ff00_plus_n(n),
+            0xE2 => self.opcode_load_a_ff00_plus_c(),
 
             _ => panic!("Opcode {:X} isn't implemented", opcode)
         };
@@ -249,7 +253,7 @@ impl<'a> CPU<'a> {
          match pc_change {
             ProgramCounter::Next => self.program_counter += 1,
             ProgramCounter::Skip => self.program_counter += 2,
-            ProgramCounter::Skip_2 => self.program_counter += 3,
+            ProgramCounter::Skip2 => self.program_counter += 3,
             ProgramCounter::Jump(address) => self.program_counter = address
         }
     }
@@ -268,6 +272,27 @@ impl<'a> CPU<'a> {
         ProgramCounter::Next
     }
 
+    fn opcode_inc_c(&mut self) -> ProgramCounter {
+        let before_bit = self.register_bc.get_bit_right(2, 0x04);
+
+        self.register_bc.inc_right();
+
+        if self.register_bc.get_right() == 0 {
+            self.register_af.set_bit_right(Z_FLAG);
+        }
+
+        self.register_af.clear_bit_right(N_FLAG);
+
+        let after_bit = self.register_bc.get_bit_right(2, 0x04);
+
+        if before_bit != after_bit {
+            self.register_af.set_bit_right(H_FLAG);
+        }
+
+        self.ticks += 4;
+        ProgramCounter::Next
+    }
+
     fn opcode_load_cn(&mut self, value: u8) -> ProgramCounter {
         self.register_bc.set_right(value);
         self.ticks += 8;
@@ -279,7 +304,7 @@ impl<'a> CPU<'a> {
         self.register_de.set(value);
         self.ticks += 12;
 
-        ProgramCounter::Skip_2
+        ProgramCounter::Skip2
     }
 
     fn opcode_load_de_a(&mut self) -> ProgramCounter {
@@ -301,17 +326,18 @@ impl<'a> CPU<'a> {
         if self.register_af.get_bit_right(Z_FLAG, Z_FLAG_BIT) == false {
             let jump_value = self.program_counter.wrapping_add(2)
                                                  .wrapping_add(value as u16);
-            
+
+
             return ProgramCounter::Jump(jump_value);
         }
-        ProgramCounter::Next
+        ProgramCounter::Skip
     }
 
     fn opcode_load_hl_16(&mut self, value: u16) -> ProgramCounter {
         self.register_hl.set(value);
         self.ticks += 12;
 
-        ProgramCounter::Skip_2
+        ProgramCounter::Skip2
     }
 
     fn opcode_load_hl_a_inc(&mut self) -> ProgramCounter {
@@ -327,18 +353,23 @@ impl<'a> CPU<'a> {
         self.memory_bus.set_stack_pointer(value);
         self.ticks += 12;
 
-        ProgramCounter::Skip_2
+        ProgramCounter::Skip2
     }
 
     fn opcode_load_hl_a_dec(&mut self) -> ProgramCounter {
-        let value = self.memory_bus.read_memory((self.register_hl.get()) as usize);
-
-        self.register_af.set_left(value);
+        self.memory_bus.write_memory(self.register_hl.get() as usize, 
+                                     self.register_af.get_left());
         self.register_hl.dec();
         self.ticks += 8;
 
-        //println!("Register HL {:X}", self.register_hl.get());
         ProgramCounter::Next
+    }
+
+    fn opcode_load_n_a(&mut self, value: u8) -> ProgramCounter {
+        self.register_af.set_left(value);
+        self.ticks += 8;
+
+        ProgramCounter::Skip
     }
 
     fn opcode_load_bb(&mut self) -> ProgramCounter {
@@ -857,12 +888,31 @@ impl<'a> CPU<'a> {
     }
 
 
-
-
     fn opcode_jmp(&mut self, address: u16) -> ProgramCounter {  
         self.ticks += 12;
 
         ProgramCounter::Jump(address)
+    }
+
+    fn opcode_load_a_ff00_plus_n(&mut self, value: u8) -> ProgramCounter {
+        let addr = (0xFF00 as u16) | (value as u16);
+        println!("Address: {:X}", addr);
+
+        let value = self.memory_bus.read_memory(addr as usize);
+        println!("Value: {:X}", value);
+
+        self.register_af.set_left(value);
+        self.ticks += 8;
+
+        ProgramCounter::Skip
+    }
+
+    fn opcode_load_a_ff00_plus_c(&mut self) -> ProgramCounter {
+        let value = (0xFF00 as u16) | (self.register_bc.get_right() as u16);
+        self.memory_bus.write_memory(value as usize, self.register_af.get_left());
+        self.ticks += 8;
+
+        ProgramCounter::Next
     }
 
 
