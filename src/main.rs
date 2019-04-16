@@ -18,6 +18,5 @@ fn main() {
 
     loop {
       cpu.execute_opcode(); 
-      //std::thread::sleep(Duration::from_millis(60));
     }
 } 
