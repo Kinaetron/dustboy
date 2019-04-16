@@ -38,10 +38,6 @@ impl Memory {
 
     pub fn write_memory(&mut self, addr: usize, data: u8) {
         self.ram[addr] = data;
-
-        if addr == 0xFF01 {
-            print!("{:X}", data);
-        }
     }
 
     pub fn set_stack_pointer(&mut self, stack_pointer: u16) {
@@ -64,7 +60,7 @@ impl Memory {
     }
 
     pub fn pop_16(&mut self) -> u16 {
-
+        println!("pointer value {:X}", self.stack_pointer);
         let byte_one = self.ram[self.stack_pointer as usize];
         self.stack_pointer += 1;
 
