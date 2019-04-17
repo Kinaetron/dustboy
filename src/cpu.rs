@@ -286,8 +286,19 @@ impl<'a> CPU<'a> {
         }
     }
 
-    fn pc_inc(&mut self) {
+    fn pc_inc_next(&mut self) -> u16 {
         self.program_counter += 1;
+        self.program_counter
+    }
+
+     fn pc_inc_skip_1(&mut self) -> u16 {
+        self.program_counter += 2;
+        self.program_counter
+    }
+
+    fn pc_inc_skip_2(&mut self) -> u16 {
+        self.program_counter += 3;
+        self.program_counter
     }
 
     fn fetch_opcode(&mut self) -> u8 {
@@ -390,7 +401,6 @@ impl<'a> CPU<'a> {
 
     fn opcode_pop_bc(&mut self) -> ProgramCounter {
         self.register_bc.set(self.memory_bus.pop_16());
-        println!("Register BC: {:X}", self.register_bc.get());
         self.ticks += 12;
 
         ProgramCounter::Next
@@ -1012,7 +1022,6 @@ impl<'a> CPU<'a> {
 
     fn opcode_return(&mut self) -> ProgramCounter {
         let value = self.memory_bus.pop_16();
-        println!("value {:X}", value);
         self.ticks += 16;
 
         ProgramCounter::Jump(value)
@@ -1020,7 +1029,7 @@ impl<'a> CPU<'a> {
 
     fn cb_opcodes(&mut self) -> ProgramCounter {
 
-        self.pc_inc();
+        self.pc_inc_next();
         let opcode = self.fetch_opcode();
 
         let pc_change = match opcode {
@@ -1063,7 +1072,9 @@ impl<'a> CPU<'a> {
     }
 
     fn opcode_call(&mut self, value: u16) -> ProgramCounter {
-        self.memory_bus.push_16(value);
+        let pc_count = self.pc_inc_skip_2();
+        
+        self.memory_bus.push_16(pc_count);
         self.ticks += 12;
 
         ProgramCounter::Jump(value)

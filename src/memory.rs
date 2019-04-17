@@ -41,7 +41,8 @@ impl Memory {
     }
 
     pub fn set_stack_pointer(&mut self, stack_pointer: u16) {
-        self.stack_pointer = stack_pointer
+        self.stack_pointer = stack_pointer;
+        println!("Set Stack Pointer: {:X}", self.stack_pointer);
     }
 
     pub fn get_stack_pointer(&self) -> u16 {
@@ -60,7 +61,6 @@ impl Memory {
     }
 
     pub fn pop_16(&mut self) -> u16 {
-        println!("pointer value {:X}", self.stack_pointer);
         let byte_one = self.ram[self.stack_pointer as usize];
         self.stack_pointer += 1;
 
