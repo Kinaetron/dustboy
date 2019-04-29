@@ -17,6 +17,7 @@ fn main() {
     let mut cpu = cpu::CPU::new(&mut memory);
 
     loop {
-      cpu.execute_opcode(); 
+      cpu.execute_opcode();
+      //std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 5)); 
     }
 } 
