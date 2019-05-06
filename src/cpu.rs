@@ -202,22 +202,27 @@ impl<'a> CPU<'a> {
 
            let pc_change = match opcode {
             0x00 => self.opcode_nop(),
+            0x04 => self.opcode_inc_b(),
             0x05 => self.opcode_dec_b(),
             0x06 => self.opcode_load_bn(n),
             0x0C => self.opcode_inc_c(),
+            0x0D => self.opcode_dec_c(),
             0x0E => self.opcode_load_cn(n),
             0x11 => self.opcode_load_de_16(nn),
             0x12 => self.opcode_load_de_a(),
             0x13 => self.opcode_dec_de(),
-            0x17 => self.opcode_rotate_c_left(),
+            0x17 => self.opcode_roate_a_left(),
+            0x18 => self.opcode_jr(n as i8),
             0x1C => self.opcode_inc_e(),
             0x1A => self.opcode_load_a_de(),
+            0x1E => self.opcode_load_e_n(n),
             0x20 => self.opcode_jmp_nz(n as i8),
             0x21 => self.opcode_load_hl_16(nn),
             0x22 => self.opcode_load_a_hl_inc(),
             0x23 => self.opcode_inc_hl(),
             0x28 => self.opcode_jr_nz(n as i8),
             0x2A => self.opcode_load_hl_a_inc(),
+            0x2E => self.opcode_load_l_n(n),
             0x31 => self.opcode_load_sp_16(nn),
             0x32 => self.opcode_load_hl_a_dec(),
             0x3D => self.opcode_dec_a(),
@@ -296,6 +301,7 @@ impl<'a> CPU<'a> {
             0xE0 => self.opcode_load_a_ff00_plus_n(n),
             0xEA => self.opcode_load_a_nn(nn),
             0xE2 => self.opcode_load_a_ff00_plus_c(),
+            0xF0 => self.opcode_load_a_mem_ff00_plus_n(n),
             0xFE => self.opcode_com_a_n(n),
 
             _ => panic!("Opcode {:X} isn't implemented", opcode)
@@ -338,8 +344,31 @@ impl<'a> CPU<'a> {
         ProgramCounter::Next
     }
 
+    fn opcode_inc_b(&mut self) -> ProgramCounter {
+        let value = self.register_bc.get_left();
+        let result = self.register_bc.inc_left();
+
+        self.register_af.set_bool_bit_right(Z_FLAG, result == 0);
+
+        self.register_af.clear_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
+        ProgramCounter::Next
+    }
+
     fn opcode_dec_b(&mut self) -> ProgramCounter {
-        self.register_bc.dec_left();
+        let value = self.register_bc.get_left();
+        let result = self.register_bc.dec_left();
+
+        self.register_af.set_bool_bit_right(Z_FLAG, result == 0);
+
+        self.register_af.set_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
         self.ticks += 4;
 
         ProgramCounter::Next
@@ -353,23 +382,34 @@ impl<'a> CPU<'a> {
     }
 
     fn opcode_inc_c(&mut self) -> ProgramCounter {
-        let before_bit = self.register_bc.get_bit_right(2, 0x04);
+        let value = self.register_bc.get_right();
+        let result = self.register_bc.inc_right();
 
-        self.register_bc.inc_right();
-
-        if self.register_bc.get_right() == 0 {
-            self.register_af.set_bit_right(Z_FLAG);
-        }
+        let z_bool = self.register_bc.get_right() == 0;
+        self.register_af.set_bool_bit_right(Z_FLAG, z_bool);
 
         self.register_af.clear_bit_right(N_FLAG);
 
-        let after_bit = self.register_bc.get_bit_right(2, 0x04);
-
-        if before_bit != after_bit {
-            self.register_af.set_bit_right(H_FLAG);
-        }
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
 
         self.ticks += 4;
+        ProgramCounter::Next
+    }
+
+     fn opcode_dec_c(&mut self) -> ProgramCounter {
+        let value = self.register_bc.get_right();
+        let result = self.register_bc.dec_right();
+
+        self.register_af.set_bool_bit_right(Z_FLAG, result == 0);
+
+        self.register_af.set_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
+        self.ticks += 4;
+
         ProgramCounter::Next
     }
 
@@ -403,11 +443,11 @@ impl<'a> CPU<'a> {
     }
 
     fn opcode_roate_a_left(&mut self) -> ProgramCounter {
-        let reg_bool = self.register_af.get_bit_left(7, 0x80);
-        self.register_af.set_bool_bit_right(C_FLAG, reg_bool);
-
         let value = self.register_af.get_left().rotate_left(1);
         self.register_af.set_left(value);
+
+        let reg_bool = self.register_af.get_bit_left(7, 0x80);
+        self.register_af.set_bool_bit_right(C_FLAG, reg_bool);
 
         self.register_af.clear_bit_right(Z_FLAG);
         self.register_af.clear_bit_right(N_FLAG);
@@ -416,6 +456,13 @@ impl<'a> CPU<'a> {
         self.ticks += 4;
 
         ProgramCounter::Next
+    }
+
+    fn opcode_jr(&mut self, value: i8) -> ProgramCounter {
+        self.ticks += 12;
+         let jump_value = self.program_counter.wrapping_add(2)
+                                              .wrapping_add(value as u16);
+        ProgramCounter::Jump(jump_value)
     }
 
     fn opcode_inc_e(&mut self) -> ProgramCounter {
@@ -431,6 +478,13 @@ impl<'a> CPU<'a> {
         self.ticks += 8;
 
         ProgramCounter::Next
+    }
+
+    fn opcode_load_e_n(&mut self, value:u8) -> ProgramCounter {
+        self.register_de.set_right(value);
+        self.ticks += 8;
+
+        ProgramCounter::Skip
     }
 
     fn opcode_pop_bc(&mut self) -> ProgramCounter {
@@ -470,8 +524,6 @@ impl<'a> CPU<'a> {
     fn opcode_jr_nz(&mut self, value: i8) -> ProgramCounter {
         self.ticks += 8;
 
-        println!("F Register {:X}", self.register_af.get_right());
-
         if self.register_af.get_bit_right(Z_FLAG, Z_FLAG_BIT) {
                     let jump_value = self.program_counter.wrapping_add(2)
                                                           .wrapping_add(value as u16);
@@ -501,6 +553,13 @@ impl<'a> CPU<'a> {
         ProgramCounter::Next
     }
 
+    fn opcode_load_l_n(&mut self, value:u8) -> ProgramCounter {
+        self.register_hl.set_right(value);
+        self.ticks += 8;
+
+        ProgramCounter::Skip
+    }
+
     fn opcode_load_sp_16(&mut self, value:u16) -> ProgramCounter {
         self.memory_bus.set_stack_pointer(value);
         self.ticks += 12;
@@ -521,15 +580,12 @@ impl<'a> CPU<'a> {
         let value = self.register_af.get_left();
         let result = self.register_af.dec_left();
 
-        if result == 0 {
-            self.register_af.set_bit_right(Z_FLAG);
-        }
+        self.register_af.set_bool_bit_right(Z_FLAG, result == 0);
 
         self.register_af.set_bit_right(N_FLAG);
 
-        if !self.check_half_carry(value, result) {
-            self.register_af.set_bit_right(H_FLAG);
-        }
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
 
         self.ticks += 4;
 
@@ -1031,9 +1087,8 @@ impl<'a> CPU<'a> {
         let value = self.register_af.get_left() ^ self.register_af.get_left();
         self.register_af.set_left(value);
 
-        if self.register_af.get_left() == 0 {
-            self.register_af.set_bit_right(Z_FLAG);
-        }
+        let z_bool = self.register_af.get_left() == 0;
+        self.register_af.set_bool_bit_right(Z_FLAG, z_bool);
 
         self.register_af.clear_bit_right(N_FLAG);
         self.register_af.clear_bit_right(H_FLAG);
@@ -1105,21 +1160,26 @@ impl<'a> CPU<'a> {
     fn opcode_com_a_n(&mut self, value: u8) -> ProgramCounter {
         let result = self.register_af.get_left().overflowing_sub(value);
 
-        if result.0 == 0 {
-            self.register_af.set_bit_right(Z_FLAG);
-        }
-
+        self.register_af.set_bool_bit_right(Z_FLAG, result.0 == 0);
         self.register_af.set_bit_right(N_FLAG);
 
-        if !self.check_half_carry(value, result.0) {
-            self.register_af.set_bit_right(H_FLAG);
-        }
+        let half_bool = self.check_half_carry(value, result.0);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
 
-        if !result.1 {
-            self.register_af.set_bit_right(C_FLAG);
-        }
+        let reg_bool = self.register_af.get_bit_right(7, 0x80);
+        self.register_af.set_bool_bit_right(C_FLAG, reg_bool);
 
         self.ticks += 8;
+
+        ProgramCounter::Skip
+    }
+
+    fn opcode_load_a_mem_ff00_plus_n(&mut self, value:u8) -> ProgramCounter {
+        let addr = (0xFF00 + value as u16) as usize;
+        let result = self.memory_bus.read_memory(addr);
+
+        self.register_de.set_right(result);
+        self.ticks += 12; 
 
         ProgramCounter::Skip
     }
@@ -1132,7 +1192,7 @@ impl<'a> CPU<'a> {
 
         let pc_change = match opcode {
                 0x7C => self.opcode_h_bit7(),
-                0x11 => self.opcode_rotate_c_left(),
+                0x11 => self.opcode_rotate_c_left_cb(),
 
             _ => panic!("CB Opcode {:X} isn't implemented", opcode)
         };
@@ -1151,19 +1211,19 @@ impl<'a> CPU<'a> {
         ProgramCounter::Next
     }
 
-    fn opcode_rotate_c_left(&mut self) -> ProgramCounter {
-        let reg_bool = self.register_bc.get_bit_right(7, 0x80);
-        self.register_af.set_bool_bit_right(C_FLAG, reg_bool);
-
+    fn opcode_rotate_c_left_cb(&mut self) -> ProgramCounter {
         let value = self.register_bc.get_right().rotate_left(1);
         self.register_bc.set_right(value);
 
-        if self.register_bc.get_right() == 0 {
-            self.register_af.set_bit_right(Z_FLAG);
-        }
+        let z_bool = self.register_bc.get_right() == 0;
+        self.register_af.set_bool_bit_right(Z_FLAG, z_bool);
 
         self.register_af.clear_bit_right(N_FLAG);
         self.register_af.clear_bit_right(H_FLAG);
+
+        let reg_bool = self.register_bc.get_bit_right(7, 0x80);
+        self.register_af.set_bool_bit_right(C_FLAG, reg_bool);
+
         self.ticks += 8;
 
         ProgramCounter::Next
