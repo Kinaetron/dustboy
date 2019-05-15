@@ -1,33 +1,20 @@
-use std::env;
 use std::fs::File;
 use std::error::Error;
 use std::io::prelude::*;
-
-const TMC : usize = 0xFF07;
-const DIV_REG : usize = 0xFF04;
-
-enum MemoryBankMode {
-    Mode0,
-    Mode1,
-    Mode2
-}
 
 pub struct Memory {
     ram: [u8; 0x10000],
     cartridge: Vec<u8>,
     stack_pointer:  u16,
-    bank_mode: MemoryBankMode
 }
 
 impl Memory {
     pub fn new()-> Memory {
-        let mut memory = Memory {
+        Memory {
             ram: [0; 0x10000],
             cartridge: Vec::new(),
             stack_pointer: 0,
-            bank_mode: MemoryBankMode::Mode0,
-        };
-        memory
+        }
     }
 
     pub fn load_rom(&mut self) -> Result<(), String> {
@@ -49,28 +36,6 @@ impl Memory {
 
     pub fn write_memory(&mut self, addr: usize, data: u8) {
         self.ram[addr] = data;
-    }
-
-    pub fn inc_divider_reg(&mut self) {
-        self.ram[DIV_REG].wrapping_add(1);
-    }
-
-    pub fn get_clock_freq(&self) -> u8 {
-        self.read_memory(TMC) & 0x3
-    }
-
-    pub fn set_clock_freq(&self) -> u32 {
-        let freq = self.get_clock_freq();
-
-        let value = match freq 
-        {
-            0 => 1024,
-            1 => 16,
-            2 => 64,
-            3 => 256,
-            _ => panic!("frequency not found")
-        };
-        value
     }
 
     pub fn set_stack_pointer(&mut self, stack_pointer: u16) {
