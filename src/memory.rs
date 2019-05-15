@@ -48,30 +48,7 @@ impl Memory {
     }
 
     pub fn write_memory(&mut self, addr: usize, data: u8) {
-
-        if addr < 0x8000 { }
-        else if (addr >= 0xE000) && (addr < 0xFE00) 
-        {
-            self.ram[addr] = data;
-            self.write_memory(addr - 0x2000, data);
-        }
-        else if (addr >= 0xFEA0) && (addr < 0xFEFF) { }
-        else if addr == 0xFF07 
-        {
-            let currentfreq = self.get_clock_freq();
-            self.ram[addr] = data;
-            let newfreq = self.get_clock_freq();
-
-            if currentfreq != newfreq {
-                self.set_clock_freq();
-            }
-        }
-        else if addr == DIV_REG {
-            self.ram[addr] = 0;
-        }
-        else {
-            self.ram[addr] = data;
-        }
+        self.ram[addr] = data;
     }
 
     pub fn inc_divider_reg(&mut self) {

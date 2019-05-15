@@ -187,6 +187,10 @@ impl CPU {
         ticks
     }
 
+    pub fn set_program_counter(&mut self, pc: u16) {
+        self.program_counter = pc
+    }
+
     pub fn execute_opcode(&mut self,  memory_bus: &mut Memory) {
         let opcode = self.fetch_opcode(memory_bus);
 
@@ -312,6 +316,7 @@ impl CPU {
             ProgramCounter::Jump(address) => self.program_counter = address
         }
     }
+
 
     fn pc_inc_next(&mut self) -> u16 {
         self.program_counter += 1;
