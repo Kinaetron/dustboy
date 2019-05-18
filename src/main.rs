@@ -1,4 +1,5 @@
 use std::process;
+use std::time::Duration;
 
 mod cpu;
 mod ppu;
@@ -14,8 +15,12 @@ fn main() {
     });
 
     let mut cpu = cpu::CPU::new();
+    let mut ppu = ppu::PPU::new();
 
     loop {
         cpu.execute_opcode(&mut memory);
+        ppu.render(&mut memory);
+
+        //::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 2));
     }
 } 

@@ -122,37 +122,37 @@ impl Register {
     }
 
     pub fn inc(&mut self) -> u16 {
-        self.value += 1;
+        self.value = self.value.wrapping_add(1);
 
         self.value
     }
 
     pub fn dec(&mut self) -> u16 {
-        self.value -= 1;
+        self.value = self.value.wrapping_sub(1);
 
         self.value
     }
 
     pub fn inc_left(&mut self) -> u8 {
-        self.set_left(self.get_left() + 1);
+        self.set_left(self.get_left().wrapping_add(1));
 
         self.get_left()
     }
 
     pub fn dec_left(&mut self) -> u8 {
-        self.set_left(self.get_left() - 1);
+        self.set_left(self.get_left().wrapping_sub(1));
 
         self.get_left()
     }
 
     pub fn inc_right(&mut self) -> u8 {
-         self.set_right(self.get_right() + 1);
+         self.set_right(self.get_right().wrapping_add(1));
 
          self.get_right()
     }
 
     pub fn dec_right(&mut self) -> u8 {
-         self.set_right(self.get_right() - 1);
+         self.set_right(self.get_right().wrapping_sub(1));
 
          self.get_right()
     }
@@ -213,15 +213,19 @@ impl CPU {
             0x11 => self.opcode_load_de_16(nn),
             0x12 => self.opcode_load_de_a(memory_bus),
             0x13 => self.opcode_dec_de(),
+            0x15 => self.opcode_dec_d(),
+            0x16 => self.opcode_load_d_n(n),
             0x17 => self.opcode_roate_a_left(),
             0x18 => self.opcode_jr(n as i8),
             0x1C => self.opcode_inc_e(),
+            0x1D => self.opcode_dec_e(),
             0x1A => self.opcode_load_a_de(memory_bus),
             0x1E => self.opcode_load_e_n(n),
             0x20 => self.opcode_jmp_nz(n as i8),
             0x21 => self.opcode_load_hl_16(nn),
             0x22 => self.opcode_load_a_hl_inc(memory_bus),
             0x23 => self.opcode_inc_hl(),
+            0x24 => self.opcode_inc_h(),
             0x28 => self.opcode_jr_nz(n as i8),
             0x2A => self.opcode_load_hl_a_inc(memory_bus),
             0x2E => self.opcode_load_l_n(n),
@@ -292,7 +296,9 @@ impl CPU {
             0x7D => self.opcode_load_al(),
             0x7E => self.opcode_load_ahl(memory_bus),
             0x7F => self.opcode_load_aa(),
+            0x90 => self.opcode_sub_b_from_a(),
             0xAF => self.opcode_xor_aa(),
+            0xBE => self.opcode_com_a_hl_mem(memory_bus),
             0xC0 => self.opcode_rtn_nz(memory_bus),
             0xC1 => self.opcode_pop_bc(memory_bus),
             0xC3 => self.opcode_jmp(nn),
@@ -445,6 +451,27 @@ impl CPU {
         ProgramCounter::Next
     }
 
+    fn opcode_dec_d(&mut self) -> ProgramCounter {
+        let value = self.register_de.get_left();
+        let result = self.register_de.dec_left();
+
+        self.register_af.set_bool_bit_right(Z_FLAG, result == 0);
+
+        self.register_af.set_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
+        self.ticks += 4;
+
+        ProgramCounter::Next
+    }
+
+    fn opcode_load_d_n(&mut self, value: u8) -> ProgramCounter {
+        self.register_de.set_left(value);
+        ProgramCounter::Skip
+    }
+
     fn opcode_roate_a_left(&mut self) -> ProgramCounter {
         let value = self.register_af.get_left().rotate_left(1);
         self.register_af.set_left(value);
@@ -470,6 +497,22 @@ impl CPU {
 
     fn opcode_inc_e(&mut self) -> ProgramCounter {
         self.register_de.inc_right();
+        self.ticks += 4;
+
+        ProgramCounter::Next
+    }
+
+    fn opcode_dec_e(&mut self) -> ProgramCounter {
+        let value = self.register_de.get_right();
+        let result = self.register_de.dec_right();
+
+        self.register_af.set_bool_bit_right(Z_FLAG, result == 0);
+
+        self.register_af.set_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
         self.ticks += 4;
 
         ProgramCounter::Next
@@ -520,6 +563,22 @@ impl CPU {
     fn opcode_inc_hl(&mut self) -> ProgramCounter {
         self.register_hl.inc();
         self.ticks += 8;
+
+        ProgramCounter::Next
+    }
+
+    fn opcode_inc_h(&mut self) -> ProgramCounter {
+        let value = self.register_hl.get_left();
+        let result = self.register_hl.get_left();
+
+        self.register_af.set_bool_bit_right(Z_FLAG, result == 0);
+
+        self.register_af.set_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
+        self.ticks += 4;
 
         ProgramCounter::Next
     }
@@ -1085,6 +1144,27 @@ impl CPU {
 
         ProgramCounter::Next
     }
+    
+    fn opcode_sub_b_from_a(&mut self) -> ProgramCounter {
+        let value = self.register_af.get_left();
+        let result = self.register_af.get_left()
+                         .overflowing_sub(self.register_bc.get_left());
+        
+        self.register_af.set_bool_bit_right(Z_FLAG, result.0 == 0);
+
+        self.register_af.set_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result.0);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
+        let reg_bool = self.register_af.get_bit_right(7, 0x80);
+        self.register_af.set_bool_bit_right(C_FLAG, reg_bool);
+
+        self.ticks += 4;
+
+        ProgramCounter::Next
+    }
+
 
     fn opcode_xor_aa(&mut self) -> ProgramCounter {
         let value = self.register_af.get_left() ^ self.register_af.get_left();
@@ -1100,6 +1180,25 @@ impl CPU {
         self.ticks += 4;
 
         ProgramCounter::Next
+    }
+
+    fn opcode_com_a_hl_mem(&mut self, memory_bus: &mut Memory) -> ProgramCounter {
+        let value = memory_bus.read_memory(self.register_hl.get() as usize);
+        let result = self.register_af.get_left().overflowing_sub(value);
+
+        self.register_af.set_bool_bit_right(Z_FLAG, result.0 == 0);
+        self.register_af.set_bit_right(N_FLAG);
+
+        let half_bool = self.check_half_carry(value, result.0);
+        self.register_af.set_bool_bit_right(H_FLAG, half_bool);
+
+        let reg_bool = self.register_af.get_bit_right(7, 0x80);
+        self.register_af.set_bool_bit_right(C_FLAG, reg_bool);
+
+        self.ticks += 8;
+
+        ProgramCounter::Next
+
     }
 
 
@@ -1181,7 +1280,7 @@ impl CPU {
         let addr = (0xFF00 + value as u16) as usize;
         let result = memory_bus.read_memory(addr);
 
-        self.register_de.set_right(result);
+        self.register_af.set_left(result);
         self.ticks += 12; 
 
         ProgramCounter::Skip

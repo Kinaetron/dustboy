@@ -5,6 +5,10 @@ use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 
+use crate::memory::*;
+
+const LY : u16 = 0xFF44;
+
 pub struct PPU {
     canvas: Canvas<Window>,
 }
@@ -20,6 +24,10 @@ impl PPU {
 
         let canvas = window.into_canvas().build().unwrap();
         PPU { canvas }
+    }
+
+    pub fn render(&self,  memory_bus: &mut Memory) {
+        memory_bus.write_memory(LY as usize, 0x90);
     }
 
     pub fn display(&mut self) {
