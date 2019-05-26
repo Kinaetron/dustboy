@@ -1221,10 +1221,9 @@ impl CPU {
 
     fn opcode_load_a_ff00_plus_n(&mut self, value: u8, memory_bus: &mut Memory) -> ProgramCounter {
         let addr = (0xFF00 as u16) | (value as u16);
-        let value = memory_bus.read_memory(addr as usize);
+        memory_bus.write_memory(addr as usize, self.register_af.get_left());
 
-        self.register_af.set_left(value);
-        self.ticks += 8;
+        self.ticks += 12;
 
         ProgramCounter::Skip
     }
