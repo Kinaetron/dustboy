@@ -7,21 +7,23 @@ use sdl2::video::Window;
 
 use crate::memory::*;
 
-const CONTROL_REG: u16 = 0xFF40;
-const STATUS_REG: u16 = 0xFF41;
+const CONTROL_REG: usize = 0xFF40;
+const STATUS_REG: usize = 0xFF41;
+const COLOUR_ADDR: usize = 0xFF47;
 
-const LY : u16 = 0xFF44;
+const BG_WIDTH: u32 = 256;
+const BG_HEIGHT: u32 = 256;
+
+const SCREEN_WIDTH: u32 = 160;
+const SCREEN_HEIGHT: u32 = 144;
+
+const LY : usize = 0xFF44;
 
 enum ModeFlag {
     HBLANK,
     VBLANK,
     OAMRAM,
     DATATOLCD
-}
-
-fn get_bit(value: u8, offset: u8, bit_value: u8) -> bool {
-    let ret_val = (value & bit_value) >> offset;
-    ret_val != 0
 }
 
 pub struct Tile {
@@ -79,31 +81,49 @@ impl LCDStatusRegister {
 pub struct PPU {
     canvas: Canvas<Window>,
     control_reg: ControlRegister,
-    lcd_stat_reg: LCDStatusRegister
+    lcd_stat_reg: LCDStatusRegister,
+    colour_zero: pixels::Color,
+    colour_one: pixels::Color,
+    colour_two: pixels::Color,
+    colour_three: pixels::Color,
 }
 
 impl PPU {
     pub fn new() -> Self {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
-        let window = video_subsystem.window("dustboy", 160, 144)
+        let window = video_subsystem.window("dustboy", SCREEN_WIDTH, SCREEN_HEIGHT)
                                     .position_centered()
                                     .build()
                                     .unwrap();
 
         let canvas = window.into_canvas().build().unwrap();
+
         PPU { 
               canvas,
               control_reg: ControlRegister::new(),
-              lcd_stat_reg: LCDStatusRegister::new()
+              lcd_stat_reg: LCDStatusRegister::new(),
+              colour_zero: pixels::Color::RGB(0, 0, 0),
+              colour_one: pixels::Color::RGB(0, 0, 0),
+              colour_two: pixels::Color::RGB(0, 0, 0),
+              colour_three: pixels::Color::RGB(0, 0, 0),
             }
     }
 
     pub fn render(&mut self,  memory_bus: &mut Memory) {
-        self.set_control_registers(memory_bus.read_memory(CONTROL_REG as usize));
-        self.set_lcd_stat_registers(memory_bus.read_memory(STATUS_REG as usize));
-    
-        memory_bus.write_memory(LY as usize, 0x90);
+        self.set_color_palette(memory_bus.read_memory(COLOUR_ADDR));
+        self.set_control_registers(memory_bus.read_memory(CONTROL_REG));
+        self.set_lcd_stat_registers(memory_bus.read_memory(STATUS_REG));
+        self.render_background(memory_bus);
+
+        memory_bus.write_memory(LY, 0x90);
+    }
+
+    fn set_color_palette(&mut self, pal_value: u8) {
+        self.colour_zero = colour(pal_value & 0x03);
+        self.colour_one = colour((pal_value & 0x0C) >> 2);
+        self.colour_two = colour((pal_value & 0x30) >> 4);
+        self.colour_three = colour((pal_value & 0xC0) >> 6);
     }
 
     fn set_control_registers(&mut self, reg_value: u8) {
@@ -131,9 +151,14 @@ impl PPU {
             0x01 => self.lcd_stat_reg.mode_flag = ModeFlag::VBLANK,
             0x02 => self.lcd_stat_reg.mode_flag = ModeFlag::OAMRAM,
             0x03 => self.lcd_stat_reg.mode_flag = ModeFlag::DATATOLCD,
-
             _ => panic!("This value {:X} has no match in LCD Mode Flag", mode)
         };
+    }
+
+    fn render_background(&mut self,  memory_bus: &mut Memory) {
+        if !self.control_reg.bg_enable {
+            return;
+        }
     }
 
     pub fn display(&mut self) {
@@ -142,3 +167,19 @@ impl PPU {
         self.canvas.present();
     }
 }
+
+fn get_bit(value: u8, offset: u8, bit_value: u8) -> bool {
+    let ret_val = (value & bit_value) >> offset;
+    ret_val != 0
+}
+
+fn colour(value: u8) -> pixels::Color {
+    match value {
+        0x00 => pixels::Color::RGB(255, 255, 255),
+        0x01 => pixels::Color::RGB(205, 205, 205),
+        0x02 => pixels::Color::RGB(169, 169, 169),
+        0x03 => pixels::Color::RGB(0, 0, 0),
+        _ => panic!("This value {:X} has no match in colour assignment method", value)
+    }
+}
+
